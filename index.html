@@ -37,22 +37,72 @@
             
             <!-- View: Song List -->
             <section id="view-list" class="view active">
-                <div class="search-bar">
-                    <i class="fa-solid fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Search songs...">
+                <div class="tabs" style="display:flex; margin: 16px 16px 0; gap: 8px;">
+                    <button id="tabSongsBtn" style="flex:1; padding:10px; border-radius:8px; border:none; background:var(--bg-surface-elevated); color:var(--text-primary); font-weight:600; cursor:pointer; transition: 0.2s;">Songs</button>
+                    <button id="tabSetlistsBtn" style="flex:1; padding:10px; border-radius:8px; border:none; background:transparent; color:var(--text-secondary); font-weight:600; cursor:pointer; transition: 0.2s;">Setlists</button>
                 </div>
-                <div style="display: flex; gap: 12px; padding: 0 16px 16px;">
-                    <button id="exportBtn" style="background-color: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: var(--text-primary); flex: 1; font-weight: 500; cursor: pointer;">Export Backup</button>
-                    <button id="importBtn" style="background-color: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: var(--text-primary); flex: 1; font-weight: 500; cursor: pointer;">Import JSON</button>
-                    <input type="file" id="importFile" accept=".json" class="hidden">
+                
+                <div id="songsTabContent">
+                    <div class="search-bar">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Search songs...">
+                    </div>
+                    <div style="display: flex; gap: 12px; padding: 0 16px 16px;">
+                        <button id="exportBtn" style="background-color: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: var(--text-primary); flex: 1; font-weight: 500; cursor: pointer;">Export Backup</button>
+                        <button id="importBtn" style="background-color: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: var(--text-primary); flex: 1; font-weight: 500; cursor: pointer;">Import JSON</button>
+                        <input type="file" id="importFile" accept=".json" class="hidden">
+                    </div>
+                    <div id="songList" class="song-list">
+                        <!-- Song items will be dynamically injected here -->
+                    </div>
+                    <div class="empty-state hidden" id="emptyState">
+                        <div class="empty-icon"><i class="fa-solid fa-guitar"></i></div>
+                        <h3>No songs found</h3>
+                        <p>Tap the + button to add your first song!</p>
+                    </div>
                 </div>
-                <div id="songList" class="song-list">
-                    <!-- Song items will be dynamically injected here -->
+
+                <div id="setlistsTabContent" class="hidden">
+                    <div style="padding: 16px;">
+                        <button id="createSetlistBtn" class="btn" style="background-color:var(--bg-surface); border:1px solid rgba(255,255,255,0.1); color:var(--text-primary);">+ Create New Setlist</button>
+                    </div>
+                    <div id="setlistList" class="song-list">
+                        <!-- Setlist items will be dynamically injected here -->
+                    </div>
+                    <div class="empty-state hidden" id="emptySetlistState">
+                        <div class="empty-icon"><i class="fa-solid fa-list-ul"></i></div>
+                        <h3>No setlists yet</h3>
+                        <p>Create a setlist to organize your songs!</p>
+                    </div>
                 </div>
-                <div class="empty-state hidden" id="emptyState">
-                    <div class="empty-icon"><i class="fa-solid fa-guitar"></i></div>
-                    <h3>No songs found</h3>
-                    <p>Tap the + button to add your first song!</p>
+            </section>
+
+            <!-- View: Setlist Detail -->
+            <section id="view-setlist-detail" class="view hidden">
+                <div class="viewer-header">
+                    <h2 id="setlistDetailTitle">Setlist Name</h2>
+                    <p id="setlistDetailCount">0 songs</p>
+                </div>
+                <div style="padding: 0 16px 16px;">
+                    <button id="addSongsToSetlistBtn" class="btn text-accent" style="background:var(--bg-surface); border:1px solid var(--accent); margin-bottom:16px;">Add / Remove Songs</button>
+                    <button id="deleteSetlistBtn" class="btn btn-danger" style="margin-bottom:16px; background:transparent; border:1px solid var(--danger); color:var(--danger);">Delete Setlist</button>
+                </div>
+                <div id="setlistDetailList" class="song-list">
+                    <!-- Songs in this setlist -->
+                </div>
+                <div class="empty-state hidden" id="emptySetlistDetailState">
+                    <p>No songs in this setlist yet.</p>
+                </div>
+            </section>
+
+            <!-- View: Setlist Selector -->
+            <section id="view-setlist-selector" class="view hidden">
+                <div class="viewer-header">
+                    <h2>Select Songs</h2>
+                    <p>Tap to include in setlist</p>
+                </div>
+                <div id="selectorList" class="song-list">
+                    <!-- Selectable song items -->
                 </div>
             </section>
 

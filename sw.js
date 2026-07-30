@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chord-tracker-v1.5';
+const CACHE_NAME = 'chord-tracker-v1.6';
 const ASSETS = [
     './',
     './index.html',

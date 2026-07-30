@@ -334,3 +334,17 @@ body {
     overflow-x: auto; /* Allow horizontal scroll if line is too long */
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
+
+/* Setlist Selection */
+.song-item.selected {
+    border-color: var(--accent);
+    background-color: var(--bg-surface-elevated);
+}
+.song-item.selected::after {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: var(--accent);
+    float: right;
+    margin-top: -24px;
+}
