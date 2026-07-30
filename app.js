@@ -72,6 +72,17 @@ async function init() {
     });
 
     await loadSongs();
+    
+    // Set initial history state
+    history.replaceState({ view: 'list', songId: null }, '', '');
+    window.addEventListener('popstate', (e) => {
+        if (e.state) {
+            doNavigateTo(e.state.view, e.state.songId);
+        } else {
+            doNavigateTo('list');
+        }
+    });
+
     renderList();
     setupEventListeners();
 }
@@ -96,7 +107,7 @@ async function saveSongs() {
 }
 
 // Navigation
-function navigateTo(view, songId = null) {
+function doNavigateTo(view, songId = null) {
     // Hide all views
     Object.values(views).forEach(v => v.classList.remove('active', 'hidden'));
     
@@ -115,6 +126,15 @@ function navigateTo(view, songId = null) {
 
     currentView = view;
     updateHeader(view, songId);
+}
+
+function navigateTo(view, songId = null, replace = false) {
+    if (replace) {
+        history.replaceState({ view, songId }, '', '');
+    } else {
+        history.pushState({ view, songId }, '', '');
+    }
+    doNavigateTo(view, songId);
 }
 
 function updateHeader(view, songId) {
@@ -178,7 +198,7 @@ function renderList(searchQuery = '') {
     });
 }
 
-function openViewer(id) {
+function openViewer(id, replace = false) {
     const song = songs.find(s => s.id === id);
     if (!song) return;
     
@@ -189,7 +209,7 @@ function openViewer(id) {
     viewerElements.transposeLabel.textContent = "0";
     viewerElements.chords.innerHTML = transposeChords(song.chords, 0);
     
-    navigateTo('viewer', id);
+    navigateTo('viewer', id, replace);
 }
 
 function updateTranspose(amount) {
@@ -251,8 +271,8 @@ async function saveCurrentSong() {
 
     await saveSongs();
     
-    // Go to viewer for the newly saved song
-    openViewer(songData.id);
+    // Go to viewer for the newly saved song, replacing the editor history state
+    openViewer(songData.id, true);
 }
 
 async function deleteCurrentSong() {
@@ -262,7 +282,7 @@ async function deleteCurrentSong() {
     if (confirm('Are you sure you want to delete this song?')) {
         songs = songs.filter(s => s.id !== id);
         await saveSongs();
-        navigateTo('list');
+        navigateTo('list', null, true);
     }
 }
 
@@ -270,12 +290,7 @@ async function deleteCurrentSong() {
 function setupEventListeners() {
     headerElements.addBtn.addEventListener('click', () => openEditor());
     headerElements.backBtn.addEventListener('click', () => {
-        if (currentView === 'editor' && editorElements.id.value) {
-            // Cancel edit, go back to viewer
-            navigateTo('viewer', editorElements.id.value);
-        } else {
-            navigateTo('list');
-        }
+        history.back();
     });
     headerElements.saveBtn.addEventListener('click', saveCurrentSong);
     headerElements.editBtn.addEventListener('click', (e) => {
