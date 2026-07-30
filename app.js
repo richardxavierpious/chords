@@ -14,7 +14,12 @@ if ('serviceWorker' in navigator) {
 // State
 let songs = [];
 let currentView = 'list';
+let currentTranspose = 0;
 const storageKey = 'chordTracker_songs';
+
+// Music Constants
+const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const flatNotes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 // DOM Elements
 const views = {
@@ -34,7 +39,10 @@ const headerElements = {
 const listElements = {
     container: document.getElementById('songList'),
     emptyState: document.getElementById('emptyState'),
-    searchInput: document.getElementById('searchInput')
+    searchInput: document.getElementById('searchInput'),
+    exportBtn: document.getElementById('exportBtn'),
+    importBtn: document.getElementById('importBtn'),
+    importFile: document.getElementById('importFile')
 };
 
 const editorElements = {
@@ -49,7 +57,10 @@ const editorElements = {
 const viewerElements = {
     title: document.getElementById('viewerTitle'),
     artist: document.getElementById('viewerArtist'),
-    chords: document.getElementById('viewerChords')
+    chords: document.getElementById('viewerChords'),
+    transposeUpBtn: document.getElementById('transposeUpBtn'),
+    transposeDownBtn: document.getElementById('transposeDownBtn'),
+    transposeLabel: document.getElementById('transposeLabel')
 };
 
 // Initialize App
@@ -171,16 +182,24 @@ function openViewer(id) {
     const song = songs.find(s => s.id === id);
     if (!song) return;
     
+    currentTranspose = 0;
     viewerElements.title.textContent = song.title;
     viewerElements.artist.textContent = song.artist || '';
     
-    // Basic formatting: we use CSS white-space: pre-wrap, but we can also optionally highlight things in brackets like [C]
-    let htmlContent = escapeHTML(song.chords);
-    // Optional: highlight text in brackets as chords
-    htmlContent = htmlContent.replace(/\[(.*?)\]/g, '<span style="color: var(--accent); font-weight: bold;">$1</span>');
+    viewerElements.transposeLabel.textContent = "0";
+    viewerElements.chords.innerHTML = transposeChords(song.chords, 0);
     
-    viewerElements.chords.innerHTML = htmlContent;
     navigateTo('viewer', id);
+}
+
+function updateTranspose(amount) {
+    currentTranspose += amount;
+    const songId = headerElements.editBtn.dataset.id;
+    const song = songs.find(s => s.id === songId);
+    if (song) {
+        viewerElements.transposeLabel.textContent = currentTranspose > 0 ? `+${currentTranspose}` : currentTranspose;
+        viewerElements.chords.innerHTML = transposeChords(song.chords, currentTranspose);
+    }
 }
 
 function openEditor(id = null) {
@@ -268,9 +287,53 @@ function setupEventListeners() {
     listElements.searchInput.addEventListener('input', (e) => {
         renderList(e.target.value);
     });
+
+    viewerElements.transposeUpBtn.addEventListener('click', () => updateTranspose(1));
+    viewerElements.transposeDownBtn.addEventListener('click', () => updateTranspose(-1));
+
+    listElements.exportBtn.addEventListener('click', () => {
+        if (songs.length === 0) return alert('No songs to export!');
+        const blob = new Blob([JSON.stringify(songs, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'chordtracker_songs.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    listElements.importBtn.addEventListener('click', () => {
+        listElements.importFile.click();
+    });
+
+    listElements.importFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const importedSongs = JSON.parse(event.target.result);
+                if (Array.isArray(importedSongs)) {
+                    const songMap = new Map(songs.map(s => [s.id, s]));
+                    importedSongs.forEach(s => {
+                        if (s.id && s.title) songMap.set(s.id, s);
+                    });
+                    songs = Array.from(songMap.values());
+                    await saveSongs();
+                    renderList();
+                    alert('Successfully imported songs!');
+                } else {
+                    alert('Invalid file format.');
+                }
+            } catch (err) {
+                alert('Error parsing file.');
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
 }
 
-// Utility
 function escapeHTML(str) {
     return str.replace(/[&<>'"]/g, 
         tag => ({
@@ -281,6 +344,41 @@ function escapeHTML(str) {
             '"': '&quot;'
         }[tag])
     );
+}
+
+function shiftNote(note, amount) {
+    let noteArray = notes;
+    let index = noteArray.indexOf(note);
+    if (index === -1) {
+        noteArray = flatNotes;
+        index = noteArray.indexOf(note);
+    }
+    if (index === -1) return note; 
+    
+    let newIndex = (index + amount) % 12;
+    if (newIndex < 0) newIndex += 12;
+    return noteArray[newIndex];
+}
+
+function transposeChords(text, amount) {
+    if (amount === 0) {
+        return escapeHTML(text).replace(/\[(.*?)\]/g, '<span style="color: var(--text-secondary);">$1</span>');
+    }
+
+    let tokens = text.split(/(\[.*?\])/);
+    for (let i = 0; i < tokens.length; i++) {
+        if (!tokens[i].startsWith('[')) {
+            // Find A-G followed by optional #/b, preserving surrounding text
+            tokens[i] = tokens[i].replace(/(^|[^a-zA-Z])([A-G][#b]?)([A-Za-z0-9\/]*)/g, (match, prefix, root, suffix) => {
+                let shiftedRoot = shiftNote(root, amount);
+                let shiftedSuffix = suffix.replace(/\/([A-G][#b]?)/g, (m, bass) => '/' + shiftNote(bass, amount));
+                return prefix + shiftedRoot + shiftedSuffix;
+            });
+        }
+    }
+    
+    let result = tokens.join('');
+    return escapeHTML(result).replace(/\[(.*?)\]/g, '<span style="color: var(--text-secondary);">$1</span>');
 }
 
 // Boot

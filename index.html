@@ -40,6 +40,11 @@
                     <i class="fa-solid fa-search"></i>
                     <input type="text" id="searchInput" placeholder="Search songs...">
                 </div>
+                <div style="display: flex; gap: 12px; padding: 0 16px 16px;">
+                    <button id="exportBtn" style="background-color: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: var(--text-primary); flex: 1; font-weight: 500; cursor: pointer;">Export Backup</button>
+                    <button id="importBtn" style="background-color: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: var(--text-primary); flex: 1; font-weight: 500; cursor: pointer;">Import JSON</button>
+                    <input type="file" id="importFile" accept=".json" class="hidden">
+                </div>
                 <div id="songList" class="song-list">
                     <!-- Song items will be dynamically injected here -->
                 </div>
@@ -72,6 +77,11 @@
                 <div class="viewer-header">
                     <h2 id="viewerTitle">Song Title</h2>
                     <p id="viewerArtist">Artist Name</p>
+                    <div style="margin-top: 16px; display: flex; justify-content: center; gap: 20px; align-items: center;">
+                        <button id="transposeDownBtn" class="icon-btn" style="background: var(--bg-surface); width: 44px; height: 44px; border: 1px solid rgba(255,255,255,0.05);"><i class="fa-solid fa-minus"></i></button>
+                        <span id="transposeLabel" style="font-weight: 600; font-size: 1.1rem; min-width: 4ch; text-align: center;">0</span>
+                        <button id="transposeUpBtn" class="icon-btn" style="background: var(--bg-surface); width: 44px; height: 44px; border: 1px solid rgba(255,255,255,0.05);"><i class="fa-solid fa-plus"></i></button>
+                    </div>
                 </div>
                 <div class="chord-display" id="viewerChords">
                     <!-- Chords will be rendered here -->
