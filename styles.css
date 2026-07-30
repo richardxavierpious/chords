@@ -1,0 +1,336 @@
+:root {
+    /* Color Palette - Premium Dark Mode */
+    --bg-base: #000000; /* Pure Black */
+    --bg-surface: #111111; /* Very Dark Grey */
+    --bg-surface-elevated: #222222; /* Dark Grey */
+    
+    --text-primary: #ffffff; /* White */
+    --text-secondary: #aaaaaa; /* Grey */
+    
+    --accent: #38bdf8; /* Sky 400 */
+    --accent-hover: #0ea5e9; /* Sky 500 */
+    
+    --danger: #ef4444; /* Red 500 */
+    
+    /* Typography */
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Spacing & Sizes */
+    --header-height: 60px;
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    overflow: hidden; /* Prevent body scroll, handle inside app container */
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile */
+    max-width: 600px; /* tablet/desktop max width */
+    margin: 0 auto;
+    background-color: var(--bg-base);
+    position: relative;
+}
+
+/* Header */
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: calc(var(--header-height) + var(--safe-area-top));
+    padding: var(--safe-area-top) 16px 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.app-header h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: center;
+    flex-grow: 1;
+    margin: 0 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s, opacity 0.2s;
+}
+
+.icon-btn:active {
+    background-color: var(--bg-surface-elevated);
+}
+
+.icon-btn.text-accent {
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 600;
+    width: auto;
+    padding: 0 12px;
+    border-radius: 20px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Main Content Area */
+.app-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    padding-bottom: var(--safe-area-bottom);
+}
+
+/* Views Setup */
+.view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 100%;
+    background-color: var(--bg-base);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.view.active {
+    opacity: 1;
+    pointer-events: auto;
+    position: relative;
+}
+
+/* Slide animations */
+#view-list {
+    transform: translateX(-20px);
+}
+#view-list.active {
+    transform: translateX(0);
+}
+
+#view-editor, #view-viewer {
+    transform: translateX(100%); /* Slide from right */
+}
+#view-editor.active, #view-viewer.active {
+    transform: translateX(0);
+}
+
+
+/* Search Bar */
+.search-bar {
+    margin: 16px;
+    background-color: var(--bg-surface);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    height: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.search-bar i {
+    color: var(--text-secondary);
+    margin-right: 12px;
+}
+
+.search-bar input {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1rem;
+    width: 100%;
+    outline: none;
+}
+
+.search-bar input::placeholder {
+    color: var(--text-secondary);
+}
+
+/* Song List */
+.song-list {
+    padding: 0 16px 24px;
+}
+
+.song-item {
+    background-color: var(--bg-surface);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.song-item:active {
+    transform: scale(0.98);
+    background-color: var(--bg-surface-elevated);
+}
+
+.song-item-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.song-item-artist {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+/* Editor View */
+#view-editor {
+    padding: 16px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.flex-grow {
+    flex-grow: 1;
+    margin-bottom: 0; /* Let form-actions handle bottom spacing */
+}
+
+.form-group input, .form-group textarea {
+    background-color: var(--bg-surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: var(--text-primary);
+    padding: 16px;
+    font-size: 1.1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+}
+
+.form-group input:focus, .form-group textarea:focus {
+    border-color: var(--accent);
+}
+
+.form-group textarea {
+    resize: none;
+    flex-grow: 1;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    line-height: 1.6;
+    min-height: 300px;
+}
+
+.form-actions {
+    margin-top: 24px;
+    padding-bottom: 24px;
+}
+
+.btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    border: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn:active {
+    opacity: 0.8;
+}
+
+.btn-danger {
+    background-color: var(--danger);
+    color: white;
+}
+
+/* Viewer View */
+#view-viewer {
+    padding: 24px 16px;
+}
+
+.viewer-header {
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.viewer-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.viewer-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.chord-display {
+    background-color: var(--bg-surface);
+    border-radius: 16px;
+    padding: 20px;
+    font-family: var(--font-mono);
+    font-size: 15px; /* optimal for reading chords on mobile */
+    line-height: 1.6;
+    white-space: pre-wrap; /* Preserve spaces and line breaks */
+    overflow-x: auto; /* Allow horizontal scroll if line is too long */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}

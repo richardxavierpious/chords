@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chord Tracker</title>
+    
+    <!-- PWA Meta Tags for iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Chords">
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- App Assets -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <button id="backBtn" class="icon-btn hidden" aria-label="Back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 id="viewTitle">My Songs</h1>
+            <button id="addSongBtn" class="icon-btn" aria-label="Add Song"><i class="fa-solid fa-plus"></i></button>
+            <button id="saveSongBtn" class="icon-btn hidden text-accent" aria-label="Save Song">Save</button>
+            <button id="editSongBtn" class="icon-btn hidden" aria-label="Edit Song"><i class="fa-solid fa-pen"></i></button>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="app-content">
+            
+            <!-- View: Song List -->
+            <section id="view-list" class="view active">
+                <div class="search-bar">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search songs...">
+                </div>
+                <div id="songList" class="song-list">
+                    <!-- Song items will be dynamically injected here -->
+                </div>
+                <div class="empty-state hidden" id="emptyState">
+                    <div class="empty-icon"><i class="fa-solid fa-guitar"></i></div>
+                    <h3>No songs found</h3>
+                    <p>Tap the + button to add your first song!</p>
+                </div>
+            </section>
+
+            <!-- View: Song Editor -->
+            <section id="view-editor" class="view hidden">
+                <input type="hidden" id="editSongId">
+                <div class="form-group">
+                    <input type="text" id="editTitle" placeholder="Song Title" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="editArtist" placeholder="Artist (Optional)">
+                </div>
+                <div class="form-group flex-grow">
+                    <textarea id="editChords" placeholder="Type or paste chords here...&#10;&#10;[Am]          [G]&#10;Hello darkness my old friend..." required></textarea>
+                </div>
+                <div class="form-actions hidden" id="editorActions">
+                    <button id="deleteSongBtn" class="btn btn-danger">Delete Song</button>
+                </div>
+            </section>
+
+            <!-- View: Song Viewer -->
+            <section id="view-viewer" class="view hidden">
+                <div class="viewer-header">
+                    <h2 id="viewerTitle">Song Title</h2>
+                    <p id="viewerArtist">Artist Name</p>
+                </div>
+                <div class="chord-display" id="viewerChords">
+                    <!-- Chords will be rendered here -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Using localforage for easy IndexedDB usage without complex setup -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
