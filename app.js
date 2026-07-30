@@ -35,6 +35,7 @@ const headerElements = {
     title: document.getElementById('viewTitle'),
     backBtn: document.getElementById('backBtn'),
     addBtn: document.getElementById('addSongBtn'),
+    addSongsToSetlistHeaderBtn: document.getElementById('addSongsToSetlistHeaderBtn'),
     saveBtn: document.getElementById('saveSongBtn'),
     editBtn: document.getElementById('editSongBtn')
 };
@@ -61,9 +62,7 @@ const setlistDetailElements = {
     title: document.getElementById('setlistDetailTitle'),
     count: document.getElementById('setlistDetailCount'),
     list: document.getElementById('setlistDetailList'),
-    emptyState: document.getElementById('emptySetlistDetailState'),
-    addSongsBtn: document.getElementById('addSongsToSetlistBtn'),
-    deleteBtn: document.getElementById('deleteSetlistBtn')
+    emptyState: document.getElementById('emptySetlistDetailState')
 };
 
 const setlistSelectorElements = {
@@ -155,6 +154,7 @@ function navigateTo(view, dataId = null, replace = false) {
 function updateHeader(view, dataId) {
     headerElements.backBtn.classList.add('hidden');
     headerElements.addBtn.classList.add('hidden');
+    headerElements.addSongsToSetlistHeaderBtn.classList.add('hidden');
     headerElements.saveBtn.classList.add('hidden');
     headerElements.editBtn.classList.add('hidden');
 
@@ -176,6 +176,7 @@ function updateHeader(view, dataId) {
     } else if (view === 'setlistDetail') {
         headerElements.title.textContent = 'Setlist';
         headerElements.backBtn.classList.remove('hidden');
+        headerElements.addSongsToSetlistHeaderBtn.classList.remove('hidden');
         renderSetlistDetail(dataId);
     } else if (view === 'setlistSelector') {
         headerElements.title.textContent = 'Select Songs';
@@ -212,7 +213,30 @@ function renderSongs(searchQuery = '') {
             <div class="song-item-title">${escapeHTML(song.title)}</div>
             ${song.artist ? `<div class="song-item-artist">${escapeHTML(song.artist)}</div>` : ''}
         `;
+        let pressTimer;
+        let isLongPress = false;
+        
+        el.addEventListener('touchstart', (e) => {
+            isLongPress = false;
+            pressTimer = setTimeout(() => {
+                isLongPress = true;
+                if (confirm('Delete song "' + song.title + '"?')) {
+                    songs = songs.filter(s => s.id !== song.id);
+                    setlists.forEach(sl => {
+                        sl.songIds = sl.songIds.filter(sid => sid !== song.id);
+                    });
+                    saveData().then(() => renderSongs());
+                }
+            }, 800);
+        }, {passive: true});
+        
+        const clearTimer = () => { if (pressTimer) clearTimeout(pressTimer); };
+        el.addEventListener('touchend', clearTimer, {passive: true});
+        el.addEventListener('touchcancel', clearTimer, {passive: true});
+        el.addEventListener('touchmove', clearTimer, {passive: true});
+
         el.addEventListener('click', () => {
+            if (isLongPress) return;
             activeSetlistId = null; // Normal play
             openViewer(song.id);
         });
@@ -235,7 +259,27 @@ function renderSetlists() {
             <div class="song-item-title">${escapeHTML(sl.name)}</div>
             <div class="song-item-artist">${sl.songIds.length} songs</div>
         `;
+        let pressTimer;
+        let isLongPress = false;
+
+        el.addEventListener('touchstart', (e) => {
+            isLongPress = false;
+            pressTimer = setTimeout(() => {
+                isLongPress = true;
+                if (confirm('Delete setlist "' + sl.name + '"?')) {
+                    setlists = setlists.filter(s => s.id !== sl.id);
+                    saveData().then(() => renderSetlists());
+                }
+            }, 800);
+        }, {passive: true});
+        
+        const clearTimer = () => { if (pressTimer) clearTimeout(pressTimer); };
+        el.addEventListener('touchend', clearTimer, {passive: true});
+        el.addEventListener('touchcancel', clearTimer, {passive: true});
+        el.addEventListener('touchmove', clearTimer, {passive: true});
+
         el.addEventListener('click', () => {
+            if (isLongPress) return;
             activeSetlistId = sl.id;
             navigateTo('setlistDetail', sl.id);
         });
@@ -464,16 +508,8 @@ function setupEventListeners() {
         }
     });
 
-    setlistDetailElements.addSongsBtn.addEventListener('click', () => {
+    headerElements.addSongsToSetlistHeaderBtn.addEventListener('click', () => {
         navigateTo('setlistSelector', activeSetlistId);
-    });
-
-    setlistDetailElements.deleteBtn.addEventListener('click', async () => {
-        if (confirm("Delete this setlist? Your songs will NOT be deleted.")) {
-            setlists = setlists.filter(s => s.id !== activeSetlistId);
-            await saveData();
-            navigateTo('list', null, true);
-        }
     });
 
     // Search & Import/Export
