@@ -131,7 +131,7 @@ function doNavigateTo(view, dataId = null) {
     
     setTimeout(() => {
         Object.values(views).forEach(v => {
-            if (v.id !== `view-${view}`) v.classList.add('hidden');
+            if (v !== views[view]) v.classList.add('hidden');
         });
     }, 300);
 
