@@ -136,7 +136,54 @@
                 </div>
             </section>
 
+            <!-- View: Chord Finder -->
+            <section id="view-finder" class="view hidden">
+                <div class="finder-search">
+                    <form id="finderForm" autocomplete="off">
+                        <div class="search-bar">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="finderInput" placeholder="Search for a song...">
+                            <button type="submit" class="finder-submit-btn" aria-label="Search"><i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                    </form>
+                </div>
+                <div id="finderLoading" class="finder-loading hidden">
+                    <div class="spinner"></div>
+                    <p>Searching for chords...</p>
+                </div>
+                <div id="finderResults" class="finder-results">
+                    <!-- Result cards injected here -->
+                </div>
+                <div id="finderEmpty" class="empty-state hidden">
+                    <div class="empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    <h3 id="finderEmptyTitle">Find chords for any song</h3>
+                    <p id="finderEmptyText">Type a song name or artist above to search.</p>
+                </div>
+            </section>
+
         </main>
+
+        <!-- Action Sheet: Add Song Options -->
+        <div id="addSongSheet" class="action-sheet-overlay hidden">
+            <div class="action-sheet">
+                <div class="action-sheet-title">Add a Song</div>
+                <button id="addManuallyBtn" class="action-sheet-btn">
+                    <i class="fa-solid fa-pen"></i>
+                    <div>
+                        <span class="action-sheet-btn-title">Add Manually</span>
+                        <span class="action-sheet-btn-desc">Type or paste chords yourself</span>
+                    </div>
+                </button>
+                <button id="findChordsBtn" class="action-sheet-btn">
+                    <i class="fa-solid fa-globe"></i>
+                    <div>
+                        <span class="action-sheet-btn-title">Find Chords Online</span>
+                        <span class="action-sheet-btn-desc">Search the web for song chords</span>
+                    </div>
+                </button>
+                <button id="cancelSheetBtn" class="action-sheet-cancel">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->

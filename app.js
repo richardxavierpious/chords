@@ -14,6 +14,10 @@ let currentView = 'list';
 let currentTranspose = 0;
 let activeSetlistId = null; // When viewing a setlist detail or playing through it
 let currentSongIndex = -1; // Index of the current song within the active setlist
+let finderAbortController = null; // For cancelling in-flight searches
+
+// CORS Proxy for cross-origin API requests
+const CORS_PROXY = 'https://corsproxy.io/?url=';
 
 const storageKeySongs = 'chordTracker_songs';
 const storageKeySetlists = 'chordTracker_setlists';
@@ -28,7 +32,8 @@ const views = {
     editor: document.getElementById('view-editor'),
     viewer: document.getElementById('view-viewer'),
     setlistDetail: document.getElementById('view-setlist-detail'),
-    setlistSelector: document.getElementById('view-setlist-selector')
+    setlistSelector: document.getElementById('view-setlist-selector'),
+    finder: document.getElementById('view-finder')
 };
 
 const headerElements = {
@@ -85,6 +90,23 @@ const viewerElements = {
     transposeUpBtn: document.getElementById('transposeUpBtn'),
     transposeDownBtn: document.getElementById('transposeDownBtn'),
     transposeLabel: document.getElementById('transposeLabel')
+};
+
+const finderElements = {
+    form: document.getElementById('finderForm'),
+    input: document.getElementById('finderInput'),
+    loading: document.getElementById('finderLoading'),
+    results: document.getElementById('finderResults'),
+    empty: document.getElementById('finderEmpty'),
+    emptyTitle: document.getElementById('finderEmptyTitle'),
+    emptyText: document.getElementById('finderEmptyText')
+};
+
+const actionSheetElements = {
+    overlay: document.getElementById('addSongSheet'),
+    addManuallyBtn: document.getElementById('addManuallyBtn'),
+    findChordsBtn: document.getElementById('findChordsBtn'),
+    cancelBtn: document.getElementById('cancelSheetBtn')
 };
 
 // Initialize
@@ -182,6 +204,9 @@ function updateHeader(view, dataId) {
         headerElements.title.textContent = 'Select Songs';
         headerElements.backBtn.classList.remove('hidden');
         renderSetlistSelector(dataId);
+    } else if (view === 'finder') {
+        headerElements.title.textContent = 'Find Chords';
+        headerElements.backBtn.classList.remove('hidden');
     }
 }
 
@@ -441,7 +466,7 @@ function setupEventListeners() {
     });
 
     // Header Actions
-    headerElements.addBtn.addEventListener('click', () => openEditor());
+    headerElements.addBtn.addEventListener('click', () => showActionSheet());
     headerElements.backBtn.addEventListener('click', () => {
         history.back();
     });
@@ -506,6 +531,27 @@ function setupEventListeners() {
             activeSetlistId = newSetlist.id;
             navigateTo('setlistDetail', newSetlist.id);
         }
+    });
+
+    // Action Sheet
+    actionSheetElements.addManuallyBtn.addEventListener('click', () => {
+        hideActionSheet();
+        openEditor();
+    });
+    actionSheetElements.findChordsBtn.addEventListener('click', () => {
+        hideActionSheet();
+        openFinder();
+    });
+    actionSheetElements.cancelBtn.addEventListener('click', () => hideActionSheet());
+    actionSheetElements.overlay.addEventListener('click', (e) => {
+        if (e.target === actionSheetElements.overlay) hideActionSheet();
+    });
+
+    // Chord Finder
+    finderElements.form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const query = finderElements.input.value.trim();
+        if (query) searchChords(query);
     });
 
     headerElements.addSongsToSetlistHeaderBtn.addEventListener('click', () => {
@@ -614,5 +660,126 @@ function transposeChords(text, amount) {
     return escapeHTML(tokens.join('')).replace(/\[(.*?)\]/g, '<span style="color: var(--text-secondary);">$1</span>');
 }
 
+// Action Sheet
+function showActionSheet() {
+    actionSheetElements.overlay.classList.remove('hidden');
+}
+
+function hideActionSheet() {
+    actionSheetElements.overlay.classList.add('hidden');
+}
+
+// Chord Finder
+function openFinder() {
+    finderElements.input.value = '';
+    finderElements.results.innerHTML = '';
+    finderElements.loading.classList.add('hidden');
+    finderElements.empty.classList.remove('hidden');
+    finderElements.emptyTitle.textContent = 'Find chords for any song';
+    finderElements.emptyText.textContent = 'Type a song name or artist above to search.';
+    navigateTo('finder');
+    setTimeout(() => finderElements.input.focus(), 350);
+}
+
+async function searchChords(query) {
+    // Cancel any previous in-flight search
+    if (finderAbortController) finderAbortController.abort();
+    finderAbortController = new AbortController();
+
+    // Show loading, hide others
+    finderElements.loading.classList.remove('hidden');
+    finderElements.results.innerHTML = '';
+    finderElements.empty.classList.add('hidden');
+
+    try {
+        const apiUrl = `https://www.songsterr.com/api/songs?pattern=${encodeURIComponent(query)}`;
+        const response = await fetch(CORS_PROXY + encodeURIComponent(apiUrl), {
+            signal: finderAbortController.signal
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        finderElements.loading.classList.add('hidden');
+
+        if (!data || data.length === 0) {
+            renderFinderError('No results found', `No chords found for "${escapeHTML(query)}". Try a different search term.`);
+            return;
+        }
+
+        // Limit to top 15 results
+        renderFinderResults(data.slice(0, 15));
+    } catch (err) {
+        finderElements.loading.classList.add('hidden');
+        if (err.name === 'AbortError') return; // User cancelled, ignore
+
+        console.error('Chord finder error:', err);
+        renderFinderError('Search failed', 'Could not connect to the chord database. Please check your internet connection and try again.');
+    }
+}
+
+function renderFinderResults(results) {
+    finderElements.results.innerHTML = '';
+    finderElements.empty.classList.add('hidden');
+
+    results.forEach(result => {
+        const title = result.title || 'Unknown Title';
+        const artist = (result.artist && result.artist.name) ? result.artist.name : 'Unknown Artist';
+        const songId = result.id;
+
+        // Build Songsterr URL
+        const slug = `${artist}-${title}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const songsterrUrl = `https://www.songsterr.com/a/wsa/${slug}-chords-s${songId}`;
+
+        const card = document.createElement('div');
+        card.className = 'finder-result-card';
+        card.innerHTML = `
+            <div class="finder-result-title">${escapeHTML(title)}</div>
+            <div class="finder-result-artist">${escapeHTML(artist)}</div>
+            <div class="finder-result-actions">
+                <button class="finder-btn finder-btn-secondary" data-url="${escapeHTML(songsterrUrl)}">
+                    <i class="fa-solid fa-external-link-alt"></i> View Source
+                </button>
+                <button class="finder-btn finder-btn-primary" data-title="${escapeHTML(title)}" data-artist="${escapeHTML(artist)}">
+                    <i class="fa-solid fa-check"></i> Use This
+                </button>
+            </div>
+        `;
+
+        // Wire up "View Source"
+        card.querySelector('.finder-btn-secondary').addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.open(e.currentTarget.dataset.url, '_blank');
+        });
+
+        // Wire up "Use This" — pre-fill editor with title & artist, open source in new tab
+        card.querySelector('.finder-btn-primary').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            // Open source tab for user to copy chords
+            const sourceUrl = card.querySelector('.finder-btn-secondary').dataset.url;
+            window.open(sourceUrl, '_blank');
+
+            // Pre-fill editor
+            editorElements.id.value = '';
+            editorElements.title.value = btn.dataset.title;
+            editorElements.artist.value = btn.dataset.artist;
+            editorElements.chords.value = '';
+            editorElements.actions.classList.add('hidden');
+            navigateTo('editor', null);
+        });
+
+        finderElements.results.appendChild(card);
+    });
+}
+
+function renderFinderError(title, message) {
+    finderElements.results.innerHTML = '';
+    finderElements.empty.classList.remove('hidden');
+    finderElements.emptyTitle.textContent = title;
+    finderElements.emptyText.textContent = message;
+}
+
 // Boot
 init();
+
