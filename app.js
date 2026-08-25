@@ -702,13 +702,16 @@ async function searchChords(query) {
         const data = await response.json();
         finderElements.loading.classList.add('hidden');
 
-        if (!data || data.length === 0) {
+        // Filter to only songs that have chords
+        const withChords = data.filter(s => s.hasChords === true);
+
+        if (!withChords || withChords.length === 0) {
             renderFinderError('No results found', `No chords found for "${escapeHTML(query)}". Try a different search term.`);
             return;
         }
 
         // Limit to top 15 results
-        renderFinderResults(data.slice(0, 15));
+        renderFinderResults(withChords.slice(0, 15));
     } catch (err) {
         finderElements.loading.classList.add('hidden');
         if (err.name === 'AbortError') return; // User cancelled, ignore
@@ -727,9 +730,9 @@ function renderFinderResults(results) {
         const artist = result.artist || 'Unknown Artist';
         const songId = result.songId;
 
-        // Build Songsterr URL
+        // Build Songsterr chords URL
         const slug = `${artist}-${title}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const songsterrUrl = `https://www.songsterr.com/a/wsa/${slug}-tab-s${songId}`;
+        const songsterrUrl = `https://www.songsterr.com/a/wsa/${slug}-chords-s${songId}`;
 
         const card = document.createElement('div');
         card.className = 'finder-result-card';
@@ -740,8 +743,8 @@ function renderFinderResults(results) {
                 <button class="finder-btn finder-btn-secondary" data-url="${escapeHTML(songsterrUrl)}">
                     <i class="fa-solid fa-external-link-alt"></i> View Source
                 </button>
-                <button class="finder-btn finder-btn-primary" data-title="${escapeHTML(title)}" data-artist="${escapeHTML(artist)}">
-                    <i class="fa-solid fa-check"></i> Use This
+                <button class="finder-btn finder-btn-primary" data-title="${escapeHTML(title)}" data-artist="${escapeHTML(artist)}" data-url="${escapeHTML(songsterrUrl)}">
+                    <i class="fa-solid fa-download"></i> Use This
                 </button>
             </div>
         `;
@@ -752,25 +755,127 @@ function renderFinderResults(results) {
             window.open(e.currentTarget.dataset.url, '_blank');
         });
 
-        // Wire up "Use This" — pre-fill editor with title & artist, open source in new tab
-        card.querySelector('.finder-btn-primary').addEventListener('click', (e) => {
+        // Wire up "Use This" — fetch chords from source and pre-fill editor
+        card.querySelector('.finder-btn-primary').addEventListener('click', async (e) => {
             e.stopPropagation();
             const btn = e.currentTarget;
-            // Open source tab for user to copy chords
-            const sourceUrl = card.querySelector('.finder-btn-secondary').dataset.url;
-            window.open(sourceUrl, '_blank');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+            btn.disabled = true;
 
-            // Pre-fill editor
-            editorElements.id.value = '';
-            editorElements.title.value = btn.dataset.title;
-            editorElements.artist.value = btn.dataset.artist;
-            editorElements.chords.value = '';
-            editorElements.actions.classList.add('hidden');
-            navigateTo('editor', null);
+            try {
+                const chordText = await fetchChordsFromPage(btn.dataset.url);
+                
+                // Pre-fill editor
+                editorElements.id.value = '';
+                editorElements.title.value = btn.dataset.title;
+                editorElements.artist.value = btn.dataset.artist;
+                editorElements.chords.value = chordText;
+                editorElements.actions.classList.add('hidden');
+                navigateTo('editor', null);
+            } catch (err) {
+                console.error('Failed to fetch chords:', err);
+                btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Failed';
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }, 2000);
+            }
         });
 
         finderElements.results.appendChild(card);
     });
+}
+
+async function fetchChordsFromPage(url) {
+    const response = await fetch(CORS_PROXY + encodeURIComponent(url));
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const html = await response.text();
+    
+    // Parse the HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // Find the chords section
+    const chordsSection = doc.querySelector('#chords') || doc.querySelector('[class*="chords"]') || doc.querySelector('section[role="main"]');
+    if (!chordsSection) throw new Error('Could not find chords section');
+    
+    let output = '';
+    
+    // Walk through the section headers (h2) and chord lines (p)
+    const elements = chordsSection.querySelectorAll('h2, p');
+    
+    for (const el of elements) {
+        if (el.tagName === 'H2') {
+            // Section header: [Intro], [Verse], [Chorus], etc.
+            const sectionName = el.textContent.trim();
+            if (sectionName) {
+                if (output) output += '\n';
+                output += `[${sectionName}]\n`;
+            }
+        } else if (el.tagName === 'P') {
+            // Chord/lyrics line
+            let line = '';
+            const blocks = el.querySelectorAll('[class*="block"]');
+            
+            if (blocks.length === 0) continue;
+            
+            // Check if this is a chords-only line (plainLine) or a chord+lyrics line
+            const isPlainLine = el.className && el.className.includes('plainLine');
+            
+            if (isPlainLine) {
+                // Chords-only line (like intro patterns)
+                const chords = [];
+                for (const block of blocks) {
+                    const chordLabel = block.querySelector('[data-chord]');
+                    if (chordLabel) {
+                        chords.push(chordLabel.getAttribute('data-chord'));
+                    }
+                }
+                if (chords.length > 0) {
+                    line = chords.join('  ');
+                }
+            } else {
+                // Line with chords above lyrics
+                let chordLine = '';
+                let lyricLine = '';
+                
+                for (const block of blocks) {
+                    const chordLabel = block.querySelector('[data-chord]');
+                    const textSpan = block.querySelector('[class*="text"]');
+                    const noiseSpan = block.querySelector('[class*="noise"]');
+                    
+                    const lyricText = textSpan ? textSpan.textContent : (noiseSpan ? noiseSpan.textContent : '');
+                    
+                    if (chordLabel) {
+                        const chord = chordLabel.getAttribute('data-chord');
+                        // Pad chord line to align with lyrics position
+                        while (chordLine.length < lyricLine.length) chordLine += ' ';
+                        chordLine += chord;
+                        lyricLine += lyricText;
+                    } else {
+                        // Text-only block (continuation from previous line)
+                        lyricLine += lyricText;
+                    }
+                }
+                
+                chordLine = chordLine.trimEnd();
+                lyricLine = lyricLine.trimEnd();
+                
+                if (chordLine) line += chordLine + '\n';
+                if (lyricLine) line += lyricLine;
+            }
+            
+            line = line.trimEnd();
+            if (line) output += line + '\n';
+        }
+    }
+    
+    output = output.trim();
+    if (!output) throw new Error('No chord content extracted');
+    
+    return output;
 }
 
 function renderFinderError(title, message) {
