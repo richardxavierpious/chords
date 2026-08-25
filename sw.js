@@ -1,11 +1,12 @@
-const CACHE_NAME = 'chord-tracker-v1.9';
+const CACHE_NAME = 'chord-tracker-v2.0';
 const ASSETS = [
     './',
     './index.html',
     './styles.css',
     './app.js',
     './manifest.json',
-    './icon.png',
+    './icon-192x192.png',
+    './icon-512x512.png',
     'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     'https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js'
