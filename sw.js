@@ -18,6 +18,7 @@ self.addEventListener('install', event => {
             .then(cache => {
                 return cache.addAll(ASSETS);
             })
+            .then(() => self.skipWaiting())
     );
 });
 
@@ -31,9 +32,10 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
 });
+
 
 self.addEventListener('fetch', event => {
     event.respondWith(
