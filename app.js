@@ -724,12 +724,12 @@ function renderFinderResults(results) {
 
     results.forEach(result => {
         const title = result.title || 'Unknown Title';
-        const artist = (result.artist && result.artist.name) ? result.artist.name : 'Unknown Artist';
-        const songId = result.id;
+        const artist = result.artist || 'Unknown Artist';
+        const songId = result.songId;
 
         // Build Songsterr URL
         const slug = `${artist}-${title}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const songsterrUrl = `https://www.songsterr.com/a/wsa/${slug}-chords-s${songId}`;
+        const songsterrUrl = `https://www.songsterr.com/a/wsa/${slug}-tab-s${songId}`;
 
         const card = document.createElement('div');
         card.className = 'finder-result-card';
